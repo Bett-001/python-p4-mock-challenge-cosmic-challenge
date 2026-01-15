@@ -25,36 +25,67 @@ class Planet(db.Model, SerializerMixin):
     distance_from_earth = db.Column(db.Integer)
     nearest_star = db.Column(db.String)
 
-    # Add relationship
+    missions = db.relationship('Mission', back_populates='planet', cascade='all, delete-orphan')
+    scientists = association_proxy('missions', 'scientist')
 
-    # Add serialization rules
+    serialize_rules = ('-missions.planet',)
 
 
 class Scientist(db.Model, SerializerMixin):
     __tablename__ = 'scientists'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
-    field_of_study = db.Column(db.String)
+    name = db.Column(db.String, nullable=False)
+    field_of_study = db.Column(db.String, nullable=False)
 
-    # Add relationship
+    missions = db.relationship('Mission', back_populates='scientist', cascade='all, delete-orphan')
+    planets = association_proxy('missions', 'planet')
 
-    # Add serialization rules
+    serialize_rules = ('-missions.scientist',)
 
-    # Add validation
+    @validates('name')
+    def validate_name(self, key, value):
+        if not value:
+            raise ValueError("Name is required")
+        return value
+
+    @validates('field_of_study')
+    def validate_field_of_study(self, key, value):
+        if not value:
+            raise ValueError("Field of study is required")
+        return value
 
 
 class Mission(db.Model, SerializerMixin):
     __tablename__ = 'missions'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
+    name = db.Column(db.String, nullable=False)
+    scientist_id = db.Column(db.Integer, db.ForeignKey('scientists.id'), nullable=False)
+    planet_id = db.Column(db.Integer, db.ForeignKey('planets.id'), nullable=False)
 
-    # Add relationships
+    scientist = db.relationship('Scientist', back_populates='missions')
+    planet = db.relationship('Planet', back_populates='missions')
 
-    # Add serialization rules
+    serialize_rules = ('-scientist.missions', '-planet.missions')
 
-    # Add validation
+    @validates('name')
+    def validate_name(self, key, value):
+        if not value:
+            raise ValueError("Name is required")
+        return value
+
+    @validates('scientist_id')
+    def validate_scientist_id(self, key, value):
+        if not value:
+            raise ValueError("Scientist ID is required")
+        return value
+
+    @validates('planet_id')
+    def validate_planet_id(self, key, value):
+        if not value:
+            raise ValueError("Planet ID is required")
+        return value
 
 
 # add any models you may need.
